@@ -17,6 +17,7 @@ import be.tarsos.dsp.io.android.AudioDispatcherFactory
 import be.tarsos.dsp.pitch.PitchDetectionHandler
 import be.tarsos.dsp.pitch.PitchProcessor
 import com.example.tuner.ui.theme.TunerTheme
+import kotlin.math.log
 
 class MainActivity : ComponentActivity() {
 
@@ -24,9 +25,9 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-//            Toast.makeText(applicationContext, "mic permission granted", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "mic permission granted", Toast.LENGTH_SHORT).show()
         } else {
-//            Toast.makeText(applicationContext, "mic permission refused", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "mic permission refused", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -70,11 +71,16 @@ class MainActivity : ComponentActivity() {
 
 private fun processPitch(pitchInHz: Float) {
     //Process the pitch here
-    println(pitchInHz)
-    pitch = pitchInHz.toDouble()
+    var semitones = numSemitones(pitchInHz.toDouble(), refPitch)
+    println("Freq: $pitchInHz, Semitones: $semitones")
+}
+
+fun numSemitones(pitch: Double, reference: Int): Double {
+    return 12 * log(pitch / reference, 2.0)
 }
 
 var pitch = 0.0
+var refPitch = 440
 
 @Composable
 fun MainWindow(pitch: Double) {
