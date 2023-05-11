@@ -1,9 +1,6 @@
 package com.example.tuner
 
 import android.Manifest
-import android.app.AlertDialog
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -16,30 +13,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import be.tarsos.dsp.io.android.AudioDispatcherFactory
 import be.tarsos.dsp.pitch.PitchDetectionHandler
 import be.tarsos.dsp.pitch.PitchProcessor
 import com.example.tuner.ui.theme.TunerTheme
+import kotlin.math.log
 
 class MainActivity : ComponentActivity() {
-
-//    val MIC_RQ = 100
 
     val requestMicrophonePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            // MICROPHONE PERMISSION GRANTED
+            Toast.makeText(applicationContext, "mic permission granted", Toast.LENGTH_SHORT).show()
         } else {
-            // MICROPHONE PERMISSION NOT GRANTED
+            Toast.makeText(applicationContext, "mic permission refused", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        checkForPermissions(android.Manifest.permission.RECORD_AUDIO, "microphone", MIC_RQ)
+        requestMicrophonePermission()
         setContent {
             TunerTheme {
                 // A surface container using the 'background' color from the theme
@@ -47,7 +41,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-
+                    MainWindow(pitch)
                 }
             }
         }
@@ -70,71 +64,27 @@ class MainActivity : ComponentActivity() {
     private fun requestMicrophonePermission() {
         requestMicrophonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
-
-//    override fun onRequestPermissionsResult(
-//        requestCode: Int,
-//        permissions: Array<out String>,
-//        grantResults: IntArray
-//    ) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-//        fun innerCheck (name: String) {
-//            if (grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-//                Toast.makeText(applicationContext, "$name permission refused", Toast.LENGTH_SHORT).show()
-//            } else {
-//                Toast.makeText(applicationContext, "$name permission granted", Toast.LENGTH_SHORT).show()
-//            }
-//            when(requestCode) {
-//                MIC_RQ -> innerCheck("microphone")
-//            }
-//        }
-//    }
-//    private fun checkForPermissions(permission: String, name: String, requestCode: Int) {
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//            when {
-//                ContextCompat.checkSelfPermission(applicationContext, permission) == PackageManager.PERMISSION_GRANTED -> {
-//                    Toast.makeText(applicationContext, "$name permission granted", Toast.LENGTH_SHORT).show()
-//                }
-//                shouldShowRequestPermissionRationale(permission) -> showDialog(permission, name, requestCode)
-//
-//                else -> ActivityCompat.requestPermissions(this, arrayOf(permission), requestCode)
-//            }
-//        }
-//
-//    }
-//
-//    private fun showDialog(permission: String, name: String, requestCode: Int) {
-//        val builder = AlertDialog.Builder(this)
-//
-//        builder.apply {
-//            setMessage("Permission to access your $name is required to use this app")
-//            setTitle("Permission required")
-//            setPositiveButton("Ok") { dialog, which ->
-//                ActivityCompat.requestPermissions(this@MainActivity, arrayOf(permission), requestCode)
-//            }
-//        }
-//        val dialog = builder.create()
-//        dialog.show()
-//
-//    }
 }
-    private fun processPitch(pitchInHz: Float) {
-        //Process the pitch here
-        println(pitchInHz)
-        pitch = pitchInHz.toDouble()
-    }
 
 
+
+
+private fun processPitch(pitchInHz: Float) {
+    //Process the pitch here
+    var semitones = numSemitones(pitchInHz.toDouble(), refPitch)
+    println("Freq: $pitchInHz, Semitones: $semitones")
+}
+
+fun numSemitones(pitch: Double, reference: Int): Double {
+    return 12 * log(pitch / reference, 2.0)
+}
 
 var pitch = 0.0
+var refPitch = 440
 
 @Composable
 fun MainWindow(pitch: Double) {
-//    Column {
     Text(text = "$pitch")
-//        PitchLetter()                                                                                            //Will also be text, but a lot smaller, might combine them if I can (with them each being different sizes)
-//        PitchAccuracy()
-//        ReferencePitch()
-
 }
 
 @Composable

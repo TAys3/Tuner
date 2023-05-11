@@ -11,7 +11,8 @@ import org.junit.Assert.*
  */
 class ExampleUnitTest {
     @Test
-    fun addition_isCorrect() {
-        assertEquals(4, 2 + 2)
+    fun semitoneEstimations() {
+        assertEquals(0, (numSemitones(440.0, 440)).toInt())
+        assertEquals(-12, (numSemitones(220.0, 440)).toInt())
     }
 }
