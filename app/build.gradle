@@ -65,4 +65,6 @@ dependencies {
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation fileTree(dir: 'libs', include: ['*.aar'])
+    implementation "androidx.activity:activity-ktx:1.7.1"
+
 }
