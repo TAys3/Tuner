@@ -16,9 +16,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import be.tarsos.dsp.io.android.AudioDispatcherFactory
 import be.tarsos.dsp.pitch.PitchDetectionHandler
 import be.tarsos.dsp.pitch.PitchProcessor
+import be.tarsos.dsp.AudioProcessor
 import com.example.tuner.ui.theme.TunerTheme
 import kotlin.math.log
 import kotlin.math.roundToInt
+
 
 class MainActivity : ComponentActivity() {
 
@@ -46,7 +48,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        val dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0)
+        val dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(32000, 2048, 1024)
         val pdh = PitchDetectionHandler { res, e ->
             val pitchInHz = res.pitch
             runOnUiThread {
@@ -54,8 +56,12 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        val movingAverageFilter = MovingAverageFilter(windowSize = 5)
+        dispatcher.addAudioProcessor(movingAverageFilter)
+
+
         val pitchProcessor =
-            PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.FFT_YIN, 22050F, 1024, pdh)
+            PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 32000F, 2048, pdh)
         dispatcher.addAudioProcessor(pitchProcessor)
 
         val audioThread = Thread(dispatcher, "Audio Thread")
@@ -65,6 +71,31 @@ class MainActivity : ComponentActivity() {
     private fun requestMicrophonePermission() {
         requestMicrophonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
+}
+
+
+class MovingAverageFilter(private val windowSize: Int) : AudioProcessor {
+    override fun process(audioEvent: be.tarsos.dsp.AudioEvent?): Boolean {
+        audioEvent?.let {
+            val buffer = it.floatBuffer
+            val filteredBuffer = FloatArray(buffer.size)
+
+            for (i in buffer.indices) {
+                var sum = 0f
+                for (j in 0 until windowSize) {
+                    if (i - j >= 0) {
+                        sum += buffer[i - j]
+                    }
+                }
+                filteredBuffer[i] = sum / windowSize
+            }
+
+            System.arraycopy(filteredBuffer, 0, buffer, 0, buffer.size)
+        }
+        return true
+    }
+
+    override fun processingFinished() {}
 }
 
 

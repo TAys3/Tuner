@@ -65,5 +65,4 @@ dependencies {
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation fileTree(dir: 'libs', include: ['*.aar'])
-
 }
