@@ -26,25 +26,3 @@ class ExampleUnitTest {
     }
 
 }
-
-
-// Old/Unused Tests. Keeping for proof of progress and reference
-
-//    @Test
-//    fun mapFunTesting(){
-//        assertEquals("E", pitchListSharps[7])
-//    }
-
-//    @Test
-//    fun closestPitchTest() {
-//        assertArrayEquals(arrayOf("A", "0", "0.0"), closestPitch(0.0, pitchListSharps))
-//        assertArrayEquals(arrayOf("A", "1", "0.0"), closestPitch(-12.0, pitchListSharps))
-//        assertArrayEquals(arrayOf("A", "1", "0.0"), closestPitch(12.0, pitchListSharps))
-
-//    @Test
-//    fun timeTest() {
-//        val time1 = measureTimeMillis { closestPitchTest() }
-//        val time2 = measureTimeMillis { pitchWhenTest() }
-//
-//        println("Time 1: $time1, Time 2: $time2")
-//    }

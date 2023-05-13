@@ -69,10 +69,11 @@ class MainActivity : ComponentActivity() {
 
 
 private fun processPitch(pitchInHz: Float) {
-    //Process the pitch here
-    var semitones = numSemitones(pitchInHz.toDouble(), refPitch)
-    var values = closestPitchWhen(semitones)
-    println("Pitch: ${values[0]}, Oct diff: ${values[1]}, Acc: ${values[2]}")
+    if (pitchInHz != -1.0F) {
+        var semitones = numSemitones(pitchInHz.toDouble(), refPitch)
+        var values = closestPitchWhen(semitones)
+        println("Freq: $pitchInHz Pitch: ${values[0]}, Oct diff: ${values[1]}, Acc: ${values[2]}")
+    }
 }
 
 fun numSemitones(pitch: Double, reference: Int): Double {
@@ -143,49 +144,3 @@ fun ManWindowPreview() {
         MainWindow(pitch)
     }
 }
-
-
-// Old/Unused code. Keeping as examples of progress and for reference
-
-//fun closestPitch(semitones: Double, pitches: Map<Int, String>): Array<String?> {
-//    var rounded = semitones.roundToInt()
-//    var counter = 0
-//    while (rounded < -11 || rounded > 11) {
-//        if (rounded < -11) {
-//            rounded += 12
-//        }
-//        if (rounded > 11){
-//            rounded -= 12
-//        }
-//        counter += 1
-//    }
-//    var accuracy = (semitones - semitones.roundToInt()) * 100
-//    return arrayOf(pitches[rounded], "$counter", "$accuracy")
-//}
-
-//val pitchListSharps = mapOf(
-//    0 to "A",
-//    1 to "A#",
-//    2 to "B",
-//    3 to "C",
-//    4 to "C#",
-//    5 to "D",
-//    6 to "D#",
-//    7 to "E",
-//    8 to "F",
-//    9 to "F#",
-//    10 to "G",
-//    11 to "G#",
-//
-//    -11 to "A#",
-//    -10 to "B",
-//    -9 to "C",
-//    -8 to "C#",
-//    -7 to "D",
-//    -6 to "D#",
-//    -5 to "E",
-//    -4 to "F",
-//    -3 to "F#",
-//    -2 to "G",
-//    -1 to "G#"
-//)
