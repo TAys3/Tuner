@@ -18,6 +18,7 @@ import be.tarsos.dsp.pitch.PitchDetectionHandler
 import be.tarsos.dsp.pitch.PitchProcessor
 import com.example.tuner.ui.theme.TunerTheme
 import kotlin.math.log
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
 
@@ -25,9 +26,9 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            Toast.makeText(applicationContext, "mic permission granted", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "Mic permission granted", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(applicationContext, "mic permission refused", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "Mic permission refused", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -67,20 +68,52 @@ class MainActivity : ComponentActivity() {
 }
 
 
-
-
 private fun processPitch(pitchInHz: Float) {
     //Process the pitch here
     var semitones = numSemitones(pitchInHz.toDouble(), refPitch)
-    println("Freq: $pitchInHz, Semitones: $semitones")
+    var values = closestPitchWhen(semitones)
+    println("Pitch: ${values[0]}, Oct diff: ${values[1]}, Acc: ${values[2]}")
 }
 
 fun numSemitones(pitch: Double, reference: Int): Double {
     return 12 * log(pitch / reference, 2.0)
 }
 
+
+fun closestPitchWhen(semitones: Double): Array<String> {
+    var rounded = semitones.roundToInt()
+    var counter = 0
+    while (rounded < -11 || rounded > 11) {
+        if (rounded < -11) {
+            rounded += 12
+        }
+        if (rounded > 11){
+            rounded -= 12
+        }
+        counter += 1
+    }
+    var accuracy = (semitones - semitones.roundToInt()) * 100
+    var pitchLetter = ""
+    when (rounded) {
+        0 -> pitchLetter = "A"
+        1, -11 -> pitchLetter = "A#"
+        2, -10 -> pitchLetter = "B"
+        3, -9 -> pitchLetter = "C"
+        4, -8 -> pitchLetter = "C#"
+        5, -7 -> pitchLetter = "D"
+        6, -6 -> pitchLetter = "D#"
+        7, -5 -> pitchLetter = "E"
+        8, -4 -> pitchLetter = "F"
+        9, -3 -> pitchLetter = "F#"
+        10, -2 -> pitchLetter = "G"
+        11, -1 -> pitchLetter = "G#"
+    }
+    return arrayOf(pitchLetter, "$counter", "$accuracy")
+}
+
 var pitch = 0.0
 var refPitch = 440
+
 
 @Composable
 fun MainWindow(pitch: Double) {
@@ -110,3 +143,49 @@ fun ManWindowPreview() {
         MainWindow(pitch)
     }
 }
+
+
+// Old/Unused code. Keeping as examples of progress and for reference
+
+//fun closestPitch(semitones: Double, pitches: Map<Int, String>): Array<String?> {
+//    var rounded = semitones.roundToInt()
+//    var counter = 0
+//    while (rounded < -11 || rounded > 11) {
+//        if (rounded < -11) {
+//            rounded += 12
+//        }
+//        if (rounded > 11){
+//            rounded -= 12
+//        }
+//        counter += 1
+//    }
+//    var accuracy = (semitones - semitones.roundToInt()) * 100
+//    return arrayOf(pitches[rounded], "$counter", "$accuracy")
+//}
+
+//val pitchListSharps = mapOf(
+//    0 to "A",
+//    1 to "A#",
+//    2 to "B",
+//    3 to "C",
+//    4 to "C#",
+//    5 to "D",
+//    6 to "D#",
+//    7 to "E",
+//    8 to "F",
+//    9 to "F#",
+//    10 to "G",
+//    11 to "G#",
+//
+//    -11 to "A#",
+//    -10 to "B",
+//    -9 to "C",
+//    -8 to "C#",
+//    -7 to "D",
+//    -6 to "D#",
+//    -5 to "E",
+//    -4 to "F",
+//    -3 to "F#",
+//    -2 to "G",
+//    -1 to "G#"
+//)
