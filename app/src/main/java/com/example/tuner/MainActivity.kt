@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
         val dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(32000, 2048, 1024)
         val pdh = PitchDetectionHandler { res, e ->
             val pitchInHz = res.pitch
@@ -58,7 +59,6 @@ class MainActivity : ComponentActivity() {
 
         val movingAverageFilter = MovingAverageFilter(windowSize = 5)
         dispatcher.addAudioProcessor(movingAverageFilter)
-
 
         val pitchProcessor =
             PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 32000F, 2048, pdh)
@@ -103,7 +103,7 @@ private fun processPitch(pitchInHz: Float) {
     if (pitchInHz != -1.0F) {
         var semitones = numSemitones(pitchInHz.toDouble(), refPitch)
         var values = closestPitchWhen(semitones)
-        println("Freq: $pitchInHz Pitch: ${values[0]}, Oct diff: ${values[1]}, Acc: ${values[2]}")
+        println("Freq: $pitchInHz Pitch: ${values[0]}, Octave: ${values[1]}, Acc: ${values[2]}")
     }
 }
 
@@ -140,7 +140,15 @@ fun closestPitchWhen(semitones: Double): Array<String> {
         10, -2 -> pitchLetter = "G"
         11, -1 -> pitchLetter = "G#"
     }
-    return arrayOf(pitchLetter, "$counter", "$accuracy")
+
+    var octave = 4
+    if(semitones < 0) {
+        octave -= counter
+    } else {
+        octave += counter
+    }
+    
+    return arrayOf(pitchLetter, "$octave", "$accuracy")
 }
 
 var pitch = 0.0

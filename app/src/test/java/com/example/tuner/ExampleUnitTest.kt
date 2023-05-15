@@ -3,8 +3,6 @@ package com.example.tuner
 import org.junit.Test
 
 import org.junit.Assert.*
-import kotlin.system.measureTimeMillis
-import kotlin.time.measureTime
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -20,9 +18,9 @@ class ExampleUnitTest {
 
     @Test
     fun pitchWhenTest() {
-        assertArrayEquals(arrayOf("A", "0", "0.0"), closestPitchWhen(0.0))
-        assertArrayEquals(arrayOf("A", "1", "0.0"), closestPitchWhen(12.0))
-        assertArrayEquals(arrayOf("A", "1", "0.0"), closestPitchWhen(-12.0))
+        assertArrayEquals(arrayOf("A", "4", "0.0"), closestPitchWhen(0.0))
+        assertArrayEquals(arrayOf("A", "5", "0.0"), closestPitchWhen(12.0))
+        assertArrayEquals(arrayOf("A", "3", "0.0"), closestPitchWhen(-12.0))
     }
 
 }
