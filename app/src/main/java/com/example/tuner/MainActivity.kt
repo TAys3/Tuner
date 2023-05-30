@@ -1,6 +1,7 @@
 package com.example.tuner
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -20,8 +21,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.twotone.Edit
+import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,18 +35,25 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,9 +61,10 @@ import be.tarsos.dsp.AudioProcessor
 import be.tarsos.dsp.io.android.AudioDispatcherFactory
 import be.tarsos.dsp.pitch.PitchDetectionHandler
 import be.tarsos.dsp.pitch.PitchProcessor
+import com.example.tuner.ui.theme.IBMLight
+import com.example.tuner.ui.theme.IBMMedium
 import com.example.tuner.ui.theme.NovaRound
 import com.example.tuner.ui.theme.TunerTheme
-import com.example.tuner.ui.theme.VarelaRound
 import kotlin.math.log
 import kotlin.math.roundToInt
 
@@ -82,8 +93,7 @@ class MainActivity : ComponentActivity() {
             TunerTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
                     MainWindow()
                 }
@@ -240,17 +250,22 @@ var refPitch = 440
 @Composable
 fun MainWindow() {
     Scaffold(
-        topBar = { Title_bar(page = "Chromatic") /* TODO */  /* Add the ability to change pages and the associated variables */ },
+        topBar = { Title_bar(page = "Chromatic", icon = Icons.Outlined.Settings) /* TODO */  /* Add the ability to change pages and the associated variables */ },
         bottomBar = { Navbar() },
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
-            FloatingActionButton(onClick = { /*TODO*/ } /*TODO add the elevation*/, containerColor = MaterialTheme.colorScheme.onSurface) {
-                Text(text = "Hz", fontFamily = NovaRound, color = MaterialTheme.colorScheme.surface, fontSize = 20.sp)
+            FloatingActionButton(onClick = { /*TODO*/ } /*TODO add the elevation*/,
+                containerColor = MaterialTheme.colorScheme.onSurface) {
+                Text(
+                    text = "Hz",
+                    fontFamily = NovaRound,
+                    color = MaterialTheme.colorScheme.surface,
+                    fontSize = 20.sp
+                )
             }
-        },
+        }
     ) { contentPadding ->
-        ContentStuff(contentPadding)
-        /* TODO */ // Learn this shit cause I need to somehow put the other UI elements here
+        ContentStuff(contentPadding)/* TODO */ // Learn this shit cause I need to somehow put the other UI elements here
     }
 }
 
@@ -259,13 +274,13 @@ fun MainWindow() {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Title_bar(page: String) {
+fun Title_bar(page: String, icon: ImageVector) {
     CenterAlignedTopAppBar(
         title = { Text(text = "$page", style = MaterialTheme.typography.titleSmall) },
         navigationIcon = {
             IconButton(onClick = { /*TODO*/ }) {
                 Icon(
-                    Icons.Outlined.Settings,
+                    icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -285,14 +300,12 @@ fun Navbar() {
 
     //TODO
     //Fix up icons and text. Maybe remove text
-    NavigationBar {
+    NavigationBar(containerColor = com.example.tuner.ui.theme.Grey900) {
         items.forEachIndexed { index, item ->
-            NavigationBarItem(
-                icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
+            NavigationBarItem(icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
                 label = { Text(item) },
                 selected = selectedItem == index,
-                onClick = { selectedItem = index }
-            )
+                onClick = { selectedItem = index })
         }
     }
 }
@@ -314,15 +327,30 @@ fun ContentStuff(paddingValues: PaddingValues) {
         Row(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .padding(16.dp)
+                .padding(24.dp)
         ) {
-            Text(text = "#", modifier = Modifier.align(Alignment.Top))
+            Column(modifier = Modifier.align(Alignment.Top)) {
+                Spacer(modifier = Modifier.height(58.dp))
+                Text(
+                    text = "#",
+                    fontFamily = IBMMedium,
+                    fontSize = 40.sp,
+                    color = Color(0xFF343333)
+                )
+            }
             Text(
                 text = "A",
                 style = MaterialTheme.typography.displayLarge,
                 modifier = Modifier.align(Alignment.Bottom)
             )
-            Text(text = "4", modifier = Modifier.align(Alignment.Bottom))
+            Column(modifier = Modifier.align(Alignment.Bottom)) {
+                Text(
+                    text = "4",
+                    fontFamily = IBMLight,
+                    fontSize = 40.sp,
+                )
+                Spacer(modifier = Modifier.height(50.dp))
+            }
         }
         Spacer(
             modifier = Modifier
@@ -330,14 +358,14 @@ fun ContentStuff(paddingValues: PaddingValues) {
                 .fillMaxWidth()
         )
         Column(modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            //TODO replace this image with something bar-like that moves
-            Image(
-                painter = painterResource(id = R.drawable.samsung_galaxy_s10__22),
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+            BarGraph()
+            Text(
+                text = "0",
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                style = MaterialTheme.typography.bodySmall
             )
             Text(
-                text = "0 cents",
+                text = "cents",
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -354,10 +382,75 @@ fun ContentStuff(paddingValues: PaddingValues) {
     }
 }
 
+/**
+ * A composable function that displays and updates a graph that visually represents the accuracy
+ */
+@Composable
+fun BarGraph() {
+    //TODO replace this image with something bar-like that moves
+    Image(
+        painter = painterResource(id = R.drawable.samsung_galaxy_s10__22),
+        contentDescription = null,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+/**
+ * A composable function that is a new window for updating the reference pitch
+ */
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RefPitch() {
+    Scaffold(
+        topBar = { Title_bar(page = "Reference", icon = Icons.Outlined.ArrowBack) /* TODO */  /* Add the ability to change pages and the associated variables */ },
+        bottomBar = { Navbar() }
+    ) {
+        Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
+                .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center) {
+                IconButton(onClick = { /*TODO*/ }) {Icon(Icons.Rounded.ArrowBack, contentDescription = "Decrease")}
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "440", style = MaterialTheme.typography.titleSmall, fontSize = 50.sp) /*TODO change to a text field (maybe)*/
+                    Text(text =  "Hz", style = MaterialTheme.typography.titleSmall)
+                }
+                IconButton(onClick = { /*TODO*/ }) {Icon(Icons.Rounded.ArrowForward, contentDescription = "Increase")}
+            }
+            var sliderPosition by remember { mutableStateOf(440f) }
+            Column {
+                Slider(
+                    modifier = Modifier.semantics { contentDescription = "Localized Description"  },
+                    value = sliderPosition,
+                    onValueChange = { sliderPosition = it },
+                    valueRange = 400f..500f,
+                    onValueChangeFinished = {
+                        // TODO
+                        // launch some business logic update with the state you hold
+                        // viewModel.updateSelectedSliderValue(sliderPosition)
+                    }
+                )
+            }
+        }
+    }
+}
+
+
+/**
+ * These functions are for previews of the UI while developing the app. These previews can be viewed buy pressing the spit or design button in the top right
+ */
 @Preview(showBackground = true)
 @Composable
 fun MainWindowPreview() {
     TunerTheme(darkTheme = true) {
         MainWindow()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RefWindowPrev() {
+    TunerTheme(darkTheme = true) {
+        RefPitch()
     }
 }

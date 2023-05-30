@@ -22,6 +22,18 @@ val VarelaRound = FontFamily(
     Font(R.font.varela_round_regular)
 )
 
+val IBMMedium = FontFamily(
+    Font(R.font.ibm_plex_mono_medium)
+)
+
+val IBMReg = FontFamily(
+    Font(R.font.ibm_plex_mono_regular)
+)
+
+val IBMLight = FontFamily(
+    Font(R.font.ibm_plex_mono_light)
+)
+
 // Set of Material typography styles to start with
 val Typography = Typography(
     bodyLarge = TextStyle(
@@ -32,20 +44,20 @@ val Typography = Typography(
         letterSpacing = 0.5.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = VarelaRound,
+        fontFamily = IBMReg,
         fontWeight = FontWeight.Normal,
         fontSize = 25.sp,
         color = Grey600
     ),
     bodySmall = TextStyle(
-        fontFamily = VarelaRound,
+        fontFamily = IBMMedium,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
         letterSpacing = 20.sp,
         color = Grey600
     ),
     displayLarge = TextStyle(
-        fontFamily = MPlusRounded,
+        fontFamily = IBMLight,
         fontWeight = FontWeight.Normal,
         fontSize = 200.sp,
     )
