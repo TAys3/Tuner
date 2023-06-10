@@ -1,14 +1,17 @@
 package com.example.tuner
 
-data class UIState (
-    val pitch: String = "",
-    val sharp: Boolean = false,
-    val octave: Int = 0,
-    val accuracy:Double = 0.0,
-    val tuned: Double = 0.0,
-    val page: String = "Chromatic",
-    val on: Boolean = false
-) {
-
-
-}
+//object TunerUIState {
+//    var pitch: String = "A"
+//    var sharp: Boolean = false
+//    var octave: String = "4"
+//    var accuracy: Int = 0
+//    var tuned: Double = 0.0
+//    var page: String = "Chromatic"
+//    var on: Boolean = false
+//    var refPitch: Int = 440
+//}
+//
+//data class TunerUIStater (
+//    val values: TunerUIState = TunerUIState) {
+//
+//}

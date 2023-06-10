@@ -35,17 +35,16 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,14 +64,13 @@ import com.example.tuner.ui.theme.IBMLight
 import com.example.tuner.ui.theme.IBMMedium
 import com.example.tuner.ui.theme.NovaRound
 import com.example.tuner.ui.theme.TunerTheme
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlin.math.log
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
-    /**
-     * Asks for mic permissions if they haven't been granted.
-     * Notifies the user of their choice when the app launches
-     */
+
     val requestMicrophonePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -187,9 +185,17 @@ class MovingAverageFilter(private val windowSize: Int) : AudioProcessor {
  */
 private fun processPitch(pitchInHz: Float) {
     if (pitchInHz != -1.0F) {
-        var semitones = numSemitones(pitchInHz.toDouble(), refPitch)
+        var semitones = numSemitones(pitchInHz.toDouble())
         var values = closestPitchWhen(semitones)
         println("Freq: $pitchInHz Pitch: ${values[0]}, Octave: ${values[1]}, Acc: ${values[2]}")
+        if("#" in values[0]) {
+            TunerUIState.pitch = values[0][0].toString()
+            TunerUIState.sharp = true
+        } else {
+            TunerUIState.pitch = values[0]
+        }
+        TunerUIState.octave = values[1]
+        TunerUIState.accuracy = values[2].toDouble().roundToInt()
     }
 }
 
@@ -198,8 +204,8 @@ private fun processPitch(pitchInHz: Float) {
  *
  * The derivation of this can be found in my log book
  */
-fun numSemitones(pitch: Double, reference: Int): Double {
-    return 12 * log(pitch / reference, 2.0)
+fun numSemitones(pitch: Double): Double {
+    return 12 * log(pitch / TunerUIState.refPitch, 2.0)
 }
 
 /**
@@ -246,11 +252,18 @@ fun closestPitchWhen(semitones: Double): Array<String> {
 
 var refPitch = 440
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainWindow() {
+fun MainWindow(viewModel: MyViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+    val UiState by viewModel.tunerState.collectAsState()
     Scaffold(
-        topBar = { Title_bar(page = "Chromatic", icon = Icons.Outlined.Settings) /* TODO */  /* Add the ability to change pages and the associated variables */ },
+        topBar = {
+            Title_bar(
+                page = UiState.page,
+                icon = Icons.Outlined.Settings
+            ) /* TODO */  /* Add the ability to change pages and the associated variables */
+        },
         bottomBar = { Navbar() },
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
@@ -265,7 +278,13 @@ fun MainWindow() {
             }
         }
     ) { contentPadding ->
-        ContentStuff(contentPadding)/* TODO */ // Learn this shit cause I need to somehow put the other UI elements here
+        ContentStuff(
+            contentPadding,
+            pitch = UiState.pitch,
+            octave = UiState.octave,
+            accuracy = UiState.accuracy.toString(),
+            sharp = UiState.sharp
+        )/* TODO */ // Learn this shit cause I need to somehow put the other UI elements here
     }
 }
 
@@ -276,7 +295,7 @@ fun MainWindow() {
 @Composable
 fun Title_bar(page: String, icon: ImageVector) {
     CenterAlignedTopAppBar(
-        title = { Text(text = "$page", style = MaterialTheme.typography.titleSmall) },
+        title = { Text(text = page, style = MaterialTheme.typography.titleSmall) },
         navigationIcon = {
             IconButton(onClick = { /*TODO*/ }) {
                 Icon(
@@ -315,7 +334,14 @@ fun Navbar() {
  * Composable function that contains all of the main body content of the chromatic page
  */
 @Composable
-fun ContentStuff(paddingValues: PaddingValues) {
+fun ContentStuff(
+    paddingValues: PaddingValues,
+    sharp: Boolean,
+    pitch: String,
+    octave: String,
+    accuracy: String
+) {
+    var colours: Array<Color> = arrayOf(Color(0xFF343333), Color(0xFF343333))
     Column(
         modifier = Modifier
             .padding(paddingValues)
@@ -339,13 +365,13 @@ fun ContentStuff(paddingValues: PaddingValues) {
                 )
             }
             Text(
-                text = "A",
+                text = pitch,
                 style = MaterialTheme.typography.displayLarge,
                 modifier = Modifier.align(Alignment.Bottom)
             )
             Column(modifier = Modifier.align(Alignment.Bottom)) {
                 Text(
-                    text = "4",
+                    text = octave,
                     fontFamily = IBMLight,
                     fontSize = 40.sp,
                 )
@@ -360,7 +386,7 @@ fun ContentStuff(paddingValues: PaddingValues) {
         Column(modifier = Modifier.align(Alignment.CenterHorizontally)) {
             BarGraph()
             Text(
-                text = "0",
+                text = accuracy,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -403,24 +429,49 @@ fun BarGraph() {
 @Composable
 fun RefPitch() {
     Scaffold(
-        topBar = { Title_bar(page = "Reference", icon = Icons.Outlined.ArrowBack) /* TODO */  /* Add the ability to change pages and the associated variables */ },
+        topBar = {
+            Title_bar(
+                page = "Reference",
+                icon = Icons.Outlined.ArrowBack
+            ) /* TODO */  /* Add the ability to change pages and the associated variables */
+        },
         bottomBar = { Navbar() }
     ) {
-        Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
-                .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center) {
-                IconButton(onClick = { /*TODO*/ }) {Icon(Icons.Rounded.ArrowBack, contentDescription = "Decrease")}
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "440", style = MaterialTheme.typography.titleSmall, fontSize = 50.sp) /*TODO change to a text field (maybe)*/
-                    Text(text =  "Hz", style = MaterialTheme.typography.titleSmall)
+        Column(
+            verticalArrangement = Arrangement.Center, modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically, modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                IconButton(onClick = { /*TODO*/ }) {
+                    Icon(
+                        Icons.Rounded.ArrowBack,
+                        contentDescription = "Decrease"
+                    )
                 }
-                IconButton(onClick = { /*TODO*/ }) {Icon(Icons.Rounded.ArrowForward, contentDescription = "Increase")}
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "440",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontSize = 50.sp
+                    ) /*TODO change to a text field (maybe)*/
+                    Text(text = "Hz", style = MaterialTheme.typography.titleSmall)
+                }
+                IconButton(onClick = { /*TODO*/ }) {
+                    Icon(
+                        Icons.Rounded.ArrowForward,
+                        contentDescription = "Increase"
+                    )
+                }
             }
             var sliderPosition by remember { mutableStateOf(440f) }
             Column {
                 Slider(
-                    modifier = Modifier.semantics { contentDescription = "Localized Description"  },
+                    modifier = Modifier.semantics { contentDescription = "Localized Description" },
                     value = sliderPosition,
                     onValueChange = { sliderPosition = it },
                     valueRange = 400f..500f,
