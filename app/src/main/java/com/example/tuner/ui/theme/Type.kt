@@ -10,6 +10,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.tuner.R
 
+/**
+ * A few of the fonts used in my app. Some are not used anymore, but are still here cause might use them later.
+ */
 val NovaRound = FontFamily(
     Font(R.font.nova_round_regular)
 )
@@ -34,7 +37,9 @@ val IBMLight = FontFamily(
     Font(R.font.ibm_plex_mono_light)
 )
 
-// Set of Material typography styles to start with
+/**
+ * These are here for reused typography styles.
+ */
 val Typography = Typography(
     bodyLarge = TextStyle(
         fontFamily = FontFamily.Default,
@@ -61,20 +66,4 @@ val Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 200.sp,
     )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
 )

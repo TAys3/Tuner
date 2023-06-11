@@ -1,5 +1,8 @@
 package com.example.tuner
 
+/**
+ * Imports. Quite a lot of them
+ */
 import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Bundle
@@ -19,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.ArrowBack
@@ -41,7 +45,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +59,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import be.tarsos.dsp.AudioProcessor
 import be.tarsos.dsp.io.android.AudioDispatcherFactory
 import be.tarsos.dsp.pitch.PitchDetectionHandler
@@ -64,14 +71,19 @@ import com.example.tuner.ui.theme.IBMLight
 import com.example.tuner.ui.theme.IBMMedium
 import com.example.tuner.ui.theme.NovaRound
 import com.example.tuner.ui.theme.TunerTheme
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlin.math.log
 import kotlin.math.roundToInt
 
+
+/**
+ * Where it all begins
+ */
 class MainActivity : ComponentActivity() {
 
-    val requestMicrophonePermissionLauncher = registerForActivityResult(
+    /**
+     * This is part of checking and asking for mic permission
+     */
+    private val requestMicrophonePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
@@ -124,7 +136,7 @@ class MainActivity : ComponentActivity() {
         /**
          * Adding the pitch processor to the AudioProcessor chain
          *
-         * It uses the YIN algorithm. Other values in PitchProcessor() are sample rate and buffer size
+         * It uses the YIN algorithm. Other values in PitchProcessor() are sample rate, buffer size and PitchDetectionHandler
          */
         val pitchProcessor =
             PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 32000F, 2048, pdh)
@@ -181,18 +193,18 @@ class MovingAverageFilter(private val windowSize: Int) : AudioProcessor {
 
 
 /**
- * This processes the pitch, and currently prints the results to the log
+ * This processes the pitch and updates the TunerUIState object with the values
  */
 private fun processPitch(pitchInHz: Float) {
     if (pitchInHz != -1.0F) {
-        var semitones = numSemitones(pitchInHz.toDouble())
-        var values = closestPitchWhen(semitones)
-        println("Freq: $pitchInHz Pitch: ${values[0]}, Octave: ${values[1]}, Acc: ${values[2]}")
-        if("#" in values[0]) {
+        val semitones = numSemitones(pitchInHz.toDouble())
+        val values = closestPitchWhen(semitones)
+        if ("#" in values[0]) {
             TunerUIState.pitch = values[0][0].toString()
             TunerUIState.sharp = true
         } else {
             TunerUIState.pitch = values[0]
+            TunerUIState.sharp = false
         }
         TunerUIState.octave = values[1]
         TunerUIState.accuracy = values[2].toDouble().roundToInt()
@@ -209,7 +221,7 @@ fun numSemitones(pitch: Double): Double {
 }
 
 /**
- * This function converts the semitones to a pitch, octave and accuracy, returning them as an array. It utilises the inbuilt when() function to do so.
+ * This function converts the semitones to a pitch, octave and accuracy, returning them as an array. It utilises the inbuilt when() function (a switch case/case match) to do so.
  */
 fun closestPitchWhen(semitones: Double): Array<String> {
     var rounded = semitones.roundToInt()
@@ -223,7 +235,7 @@ fun closestPitchWhen(semitones: Double): Array<String> {
         }
         counter += 1
     }
-    var accuracy = (semitones - semitones.roundToInt()) * 100
+    val accuracy = (semitones - semitones.roundToInt()) * 100
     var pitchLetter = ""
     when (rounded) {
         0 -> pitchLetter = "A"
@@ -250,41 +262,74 @@ fun closestPitchWhen(semitones: Double): Array<String> {
     return arrayOf(pitchLetter, "$octave", "$accuracy")
 }
 
-var refPitch = 440
+/**
+ * An enum class that is used by the NavHost to define and create routes. The NavHost is what does
+ * the navigation thru the app (to different pages and such).
+ */
+enum class TunerScreen {
+    Chromatic,
+    Refpitch,
+    Settings
+}
 
-
+/**
+ * The highest level composable function. It holds the ViewModel and the NavHost/NavController.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainWindow(viewModel: MyViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+fun MainWindow(
+    viewModel: MyViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    navController: NavHostController = rememberNavController()
+) {
     val UiState by viewModel.tunerState.collectAsState()
     Scaffold(
         topBar = {
             Title_bar(
                 page = UiState.page,
-                icon = Icons.Outlined.Settings
-            ) /* TODO */  /* Add the ability to change pages and the associated variables */
+                icon = if (UiState.page == "Chromatic") Icons.Outlined.Settings else Icons.Outlined.ArrowBack,
+                navController = navController
+            )
         },
-        bottomBar = { Navbar() },
+//        bottomBar = { Navbar() },
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
-            FloatingActionButton(onClick = { /*TODO*/ } /*TODO add the elevation*/,
-                containerColor = MaterialTheme.colorScheme.onSurface) {
-                Text(
-                    text = "Hz",
-                    fontFamily = NovaRound,
-                    color = MaterialTheme.colorScheme.surface,
-                    fontSize = 20.sp
-                )
+            if (TunerUIState.page == "Chromatic") {
+                FloatingActionButton(onClick = { navController.navigate(TunerScreen.Refpitch.name) } /*TODO add the elevation*/,
+                    containerColor = MaterialTheme.colorScheme.onSurface) {
+                    Text(
+                        text = "Hz",
+                        fontFamily = NovaRound,
+                        color = MaterialTheme.colorScheme.surface,
+                        fontSize = 20.sp
+                    )
+                }
             }
         }
     ) { contentPadding ->
-        ContentStuff(
-            contentPadding,
-            pitch = UiState.pitch,
-            octave = UiState.octave,
-            accuracy = UiState.accuracy.toString(),
-            sharp = UiState.sharp
-        )/* TODO */ // Learn this shit cause I need to somehow put the other UI elements here
+        NavHost(
+            navController = navController,
+            startDestination = TunerScreen.Chromatic.name,
+            modifier = Modifier.padding(contentPadding)
+        ) {
+            composable(route = TunerScreen.Chromatic.name) {
+                ChromaticMain(
+                    paddingValues = contentPadding,
+                    sharp = UiState.sharp,
+                    pitch = UiState.pitch,
+                    octave = UiState.octave,
+                    accuracy = UiState.accuracy.toString()
+                )
+                TunerUIState.page = "Chromatic"
+            }
+            composable(route = TunerScreen.Refpitch.name) {
+                RefPitch(UiState.refPitch.toString())
+                TunerUIState.page = "Reference"
+            }
+            composable(route = TunerScreen.Settings.name) {
+                SettingsScreen()
+                TunerUIState.page = "Settings"
+            }
+        }
     }
 }
 
@@ -293,11 +338,16 @@ fun MainWindow(viewModel: MyViewModel = androidx.lifecycle.viewmodel.compose.vie
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Title_bar(page: String, icon: ImageVector) {
+fun Title_bar(page: String, icon: ImageVector, navController: NavHostController) {
     CenterAlignedTopAppBar(
         title = { Text(text = page, style = MaterialTheme.typography.titleSmall) },
         navigationIcon = {
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = {
+                if (page == "Chromatic") navController.navigate(
+                    TunerScreen.Settings.name
+                ) else navController.navigateUp()
+            }
+            ) {
                 Icon(
                     icon,
                     contentDescription = null,
@@ -310,7 +360,7 @@ fun Title_bar(page: String, icon: ImageVector) {
 }
 
 /**
- * Composable function for the app's navigation bar
+ * Composable function for the app's navigation bar (not currently in use)
  */
 @Composable
 fun Navbar() {
@@ -329,19 +379,37 @@ fun Navbar() {
     }
 }
 
+/**
+ * Composable function for the app's settings screen (no features yet)
+ */
+@Composable
+fun SettingsScreen() {
+    Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxHeight().fillMaxWidth()) {
+        Spacer(modifier = Modifier.size(48.dp))
+        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Coming soon (maybe)",
+                fontSize = 20.sp,
+                style = MaterialTheme.typography.titleSmall
+            )
+        }
+        Spacer(modifier = Modifier.size(48.dp))
+    }
+
+}
+
 
 /**
  * Composable function that contains all of the main body content of the chromatic page
  */
 @Composable
-fun ContentStuff(
+fun ChromaticMain(
     paddingValues: PaddingValues,
     sharp: Boolean,
     pitch: String,
     octave: String,
     accuracy: String
 ) {
-    var colours: Array<Color> = arrayOf(Color(0xFF343333), Color(0xFF343333))
     Column(
         modifier = Modifier
             .padding(paddingValues)
@@ -361,7 +429,7 @@ fun ContentStuff(
                     text = "#",
                     fontFamily = IBMMedium,
                     fontSize = 40.sp,
-                    color = Color(0xFF343333)
+                    color = if (sharp) Color(0xFFC0BCBC) else Color(0xFF343333)
                 )
             }
             Text(
@@ -409,7 +477,7 @@ fun ContentStuff(
 }
 
 /**
- * A composable function that displays and updates a graph that visually represents the accuracy
+ * A composable function that displays a graph that visually represents the accuracy
  */
 @Composable
 fun BarGraph() {
@@ -422,73 +490,64 @@ fun BarGraph() {
 }
 
 /**
- * A composable function that is a new window for updating the reference pitch
+ * A composable function that shows the reference pitch and buttons and a slider to update it
  */
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RefPitch() {
-    Scaffold(
-        topBar = {
-            Title_bar(
-                page = "Reference",
-                icon = Icons.Outlined.ArrowBack
-            ) /* TODO */  /* Add the ability to change pages and the associated variables */
-        },
-        bottomBar = { Navbar() }
+fun RefPitch(refpitch: String) {
+    Column(
+        verticalArrangement = Arrangement.Center, modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
     ) {
-        Column(
-            verticalArrangement = Arrangement.Center, modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically, modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                IconButton(onClick = { /*TODO*/ }) {
-                    Icon(
-                        Icons.Rounded.ArrowBack,
-                        contentDescription = "Decrease"
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "440",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontSize = 50.sp
-                    ) /*TODO change to a text field (maybe)*/
-                    Text(text = "Hz", style = MaterialTheme.typography.titleSmall)
-                }
-                IconButton(onClick = { /*TODO*/ }) {
-                    Icon(
-                        Icons.Rounded.ArrowForward,
-                        contentDescription = "Increase"
-                    )
-                }
-            }
-            var sliderPosition by remember { mutableStateOf(440f) }
-            Column {
-                Slider(
-                    modifier = Modifier.semantics { contentDescription = "Localized Description" },
-                    value = sliderPosition,
-                    onValueChange = { sliderPosition = it },
-                    valueRange = 400f..500f,
-                    onValueChangeFinished = {
-                        // TODO
-                        // launch some business logic update with the state you hold
-                        // viewModel.updateSelectedSliderValue(sliderPosition)
-                    }
+            IconButton(onClick = { TunerUIState.refPitch -= 1 }) {
+                Icon(
+                    Icons.Rounded.ArrowBack,
+                    contentDescription = "Decrease"
                 )
             }
+            Spacer(modifier = Modifier.size(16.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = refpitch,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontSize = 50.sp
+                ) /*TODO change to a text field (maybe)*/
+                Text(text = "Hz", style = MaterialTheme.typography.titleSmall)
+            }
+            Spacer(modifier = Modifier.size(16.dp))
+            IconButton(onClick = { TunerUIState.refPitch += 1 }) {
+                Icon(
+                    Icons.Rounded.ArrowForward,
+                    contentDescription = "Increase"
+                )
+            }
+        }
+        var sliderPosition by remember { mutableStateOf(440f) }
+        Column {
+            Slider(
+                modifier = Modifier
+                    .semantics { contentDescription = "Reference Pitch Slider" }
+                    .padding(16.dp),
+                value = sliderPosition,
+                onValueChange = { sliderPosition = it },
+                valueRange = 400f..500f,
+                onValueChangeFinished = {
+                    TunerUIState.refPitch = sliderPosition.roundToInt()
+                }
+            )
         }
     }
 }
 
 
 /**
- * These functions are for previews of the UI while developing the app. These previews can be viewed buy pressing the spit or design button in the top right
+ * These following functions are for previews of the UI while developing the app. These previews can be viewed by pressing the split or design button in the top right
  */
 @Preview(showBackground = true)
 @Composable
@@ -502,6 +561,14 @@ fun MainWindowPreview() {
 @Composable
 fun RefWindowPrev() {
     TunerTheme(darkTheme = true) {
-        RefPitch()
+        RefPitch(refpitch = TunerUIState.refPitch.toString())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SettingsPrev() {
+    TunerTheme(darkTheme = true) {
+        SettingsScreen()
     }
 }

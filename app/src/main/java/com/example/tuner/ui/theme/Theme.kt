@@ -15,6 +15,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+
+/**
+ * These are all the values for the light and dark theme. Don't have a light theme yet so forcing dark for now.
+ */
 private val DarkColorScheme = darkColorScheme(
     background = Grey800,
     surface = Grey900,

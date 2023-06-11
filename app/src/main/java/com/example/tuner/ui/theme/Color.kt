@@ -2,7 +2,7 @@ package com.example.tuner.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-//Dark Theme. No light theme yet
+//These are the colours that are used/want to use in my app. Only dark theme ones for now.
 val Grey900 = Color(0xFF343333)
 val Grey800 = Color(0xFF424242)
 val Grey600 = Color(0xFFC0BCBC)
