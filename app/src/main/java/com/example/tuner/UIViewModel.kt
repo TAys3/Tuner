@@ -12,7 +12,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * This is an object, which is sort of like a class that is initialised on startup. Feature and benefit
  * of an object is that only one instance can ever exist during runtime. This means that I don't have to
  * instantiate it anywhere in my code, and is also accessible throughout the entire codebase.
- *
+ * 
+ * (I've seen kotlin objects being referred to as singletons somewhere I think. 
+ * not sure how similar they are tho)
+ * 
  * Using, this, I can have the ViewModel watch this object for any changes, enabling the UI to be
  * updated when I calculate the values.
  */
