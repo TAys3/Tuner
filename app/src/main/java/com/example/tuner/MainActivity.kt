@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -57,6 +59,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -64,6 +67,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import be.tarsos.dsp.AudioProcessor
+import be.tarsos.dsp.filters.HighPass
+import be.tarsos.dsp.filters.LowPassFS
 import be.tarsos.dsp.io.android.AudioDispatcherFactory
 import be.tarsos.dsp.pitch.PitchDetectionHandler
 import be.tarsos.dsp.pitch.PitchProcessor
@@ -71,6 +76,7 @@ import com.example.tuner.ui.theme.IBMLight
 import com.example.tuner.ui.theme.IBMMedium
 import com.example.tuner.ui.theme.NovaRound
 import com.example.tuner.ui.theme.TunerTheme
+import kotlin.math.abs
 import kotlin.math.log
 import kotlin.math.roundToInt
 
@@ -119,18 +125,27 @@ class MainActivity : ComponentActivity() {
          *
          * Values in fromDefaultMicrophone() are the sample rate, audio buffer size and buffer overlap
          */
-        val dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(32000, 2048, 1024)
+        val dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(44100, 4096, 1024)
         val pdh = PitchDetectionHandler { res, e ->
             val pitchInHz = res.pitch
+            val probability = res.probability
+            val pitched = res.isPitched
             runOnUiThread {
-                processPitch(pitchInHz)
+                processPitch(pitchInHz, probability, pitched)
             }
         }
 
         /**
-         * Adding the noise filter to the AudioProcessor chain
+         * Adding filters to the AudioProcessor chain in order to increase accuracy
          */
-        val movingAverageFilter = MovingAverageFilter(windowSize = 5)
+
+        val lowPassFilter = LowPassFS(4000F, 44100F)
+        dispatcher.addAudioProcessor(lowPassFilter)
+
+        val highPassFiler = HighPass(50F, 44100F)
+        dispatcher.addAudioProcessor(highPassFiler)
+
+        val movingAverageFilter = MovingAverageFilter(windowSize = 10)
         dispatcher.addAudioProcessor(movingAverageFilter)
 
         /**
@@ -139,7 +154,7 @@ class MainActivity : ComponentActivity() {
          * It uses the YIN algorithm. Other values in PitchProcessor() are sample rate, buffer size and PitchDetectionHandler
          */
         val pitchProcessor =
-            PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 32000F, 2048, pdh)
+            PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 44100F, 4096, pdh)
         dispatcher.addAudioProcessor(pitchProcessor)
 
         val audioThread = Thread(dispatcher, "Audio Thread")
@@ -195,8 +210,8 @@ class MovingAverageFilter(private val windowSize: Int) : AudioProcessor {
 /**
  * This processes the pitch and updates the TunerUIState object with the values
  */
-private fun processPitch(pitchInHz: Float) {
-    if (pitchInHz != -1.0F) {
+private fun processPitch(pitchInHz: Float, probability: Float, pitched: Boolean) {
+    if (pitched && pitchInHz != -1.0F && probability > 0.93F) {
         val semitones = numSemitones(pitchInHz.toDouble())
         val values = closestPitchWhen(semitones)
         if ("#" in values[0]) {
@@ -208,7 +223,27 @@ private fun processPitch(pitchInHz: Float) {
         }
         TunerUIState.octave = values[1]
         TunerUIState.accuracy = values[2].toDouble().roundToInt()
+        if (abs(values[2].toDouble()) < 10) {
+            if (TunerUIState.tuned < 1.0) {
+                TunerUIState.tuned += 0.05
+            }
+        } else {
+            if (TunerUIState.tuned > 0.2) {
+                TunerUIState.tuned -= 0.2
+            } else {
+                TunerUIState.tuned = 0.0
+            }
+        }
     }
+    if (pitchInHz == -1.0F) {
+        if (TunerUIState.tuned > 0.1) {
+            TunerUIState.tuned -= 0.1
+        } else {
+            TunerUIState.tuned = 0.0
+        }
+    }
+
+//    println("$pitchInHz $probability $pitched ${TunerUIState.tuned}")
 }
 
 /**
@@ -217,7 +252,12 @@ private fun processPitch(pitchInHz: Float) {
  * The derivation of this can be found in my log book
  */
 fun numSemitones(pitch: Double): Double {
-    return 12 * log(pitch / TunerUIState.refPitch, 2.0)
+    return 12 * log(pitch / (TunerUIState.refPitch), 2.0)
+
+    //TODO
+    //Uhh so its kinda accurate now. No idea how it fixed itself. But, if it goes rogue again, must do the following:
+    //Graph the inaccuracies and fix them.
+    //Or if not bothered, just subtract about 4 semitones from refPitch to 'fix' it for standard tuning
 }
 
 /**
@@ -317,7 +357,8 @@ fun MainWindow(
                     sharp = UiState.sharp,
                     pitch = UiState.pitch,
                     octave = UiState.octave,
-                    accuracy = UiState.accuracy.toString()
+                    accuracy = UiState.accuracy.toString(),
+                    tuned = UiState.tuned
                 )
                 TunerUIState.page = "Chromatic"
             }
@@ -384,7 +425,11 @@ fun Navbar() {
  */
 @Composable
 fun SettingsScreen() {
-    Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxHeight().fillMaxWidth()) {
+    Column(
+        verticalArrangement = Arrangement.Center, modifier = Modifier
+            .fillMaxHeight()
+            .fillMaxWidth()
+    ) {
         Spacer(modifier = Modifier.size(48.dp))
         Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -408,11 +453,12 @@ fun ChromaticMain(
     sharp: Boolean,
     pitch: String,
     octave: String,
-    accuracy: String
+    accuracy: String,
+    tuned: Double
 ) {
     Column(
         modifier = Modifier
-            .padding(paddingValues)
+            .padding(8.dp)
             .fillMaxWidth()
             .fillMaxHeight()
             .background(MaterialTheme.colorScheme.background),
@@ -421,7 +467,7 @@ fun ChromaticMain(
         Row(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .padding(24.dp)
+                .padding(4.dp)
         ) {
             Column(modifier = Modifier.align(Alignment.Top)) {
                 Spacer(modifier = Modifier.height(58.dp))
@@ -429,12 +475,15 @@ fun ChromaticMain(
                     text = "#",
                     fontFamily = IBMMedium,
                     fontSize = 40.sp,
-                    color = if (sharp) Color(0xFFC0BCBC) else Color(0xFF343333)
+                    color = if (!sharp) Color(0xFF343333) else {
+                        if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)
+                    }
                 )
             }
             Text(
                 text = pitch,
                 style = MaterialTheme.typography.displayLarge,
+                color = if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC),
                 modifier = Modifier.align(Alignment.Bottom)
             )
             Column(modifier = Modifier.align(Alignment.Bottom)) {
@@ -442,19 +491,20 @@ fun ChromaticMain(
                     text = octave,
                     fontFamily = IBMLight,
                     fontSize = 40.sp,
+                    color = if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)
                 )
                 Spacer(modifier = Modifier.height(50.dp))
             }
         }
-        Spacer(
-            modifier = Modifier
-                .height(16.dp)
-                .fillMaxWidth()
-        )
         Column(modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            BarGraph()
+            BarGraph(accuracy.toInt())
+            Spacer(
+                modifier = Modifier
+                    .height(24.dp)
+                    .fillMaxWidth()
+            )
             Text(
-                text = accuracy,
+                text = when (accuracy.toInt()) {in -100..0 -> accuracy else -> "+$accuracy"} ,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -466,13 +516,14 @@ fun ChromaticMain(
         }
         Spacer(
             modifier = Modifier
-                .height(70.dp)
+                .height(30.dp)
                 .fillMaxWidth()
         )
         CircularProgressIndicator(
+            progress = tuned.toFloat(),
             modifier = Modifier.align(Alignment.CenterHorizontally),
             color = com.example.tuner.ui.theme.Green200
-        ) /*TODO make it determinate or replace it with linear that is shaped*/
+        )
     }
 }
 
@@ -480,13 +531,27 @@ fun ChromaticMain(
  * A composable function that displays a graph that visually represents the accuracy
  */
 @Composable
-fun BarGraph() {
-    //TODO replace this image with something bar-like that moves
-    Image(
-        painter = painterResource(id = R.drawable.samsung_galaxy_s10__22),
-        contentDescription = null,
-        modifier = Modifier.fillMaxWidth()
-    )
+fun BarGraph(accuracy: Int) {
+    val offset: Int = if (abs(accuracy) > 45) {
+        if (accuracy > 0) 45 else -45
+    } else {
+        accuracy
+    }
+    Box {
+        Image(
+            painter = painterResource(id = R.drawable.bar1),
+            contentDescription = null,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Image(
+            painter = painterResource(id = R.drawable.bar2),
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset { IntOffset(offset * 10, 0) }
+        )
+    }
+
 }
 
 /**
@@ -554,6 +619,24 @@ fun RefPitch(refpitch: String) {
 fun MainWindowPreview() {
     TunerTheme(darkTheme = true) {
         MainWindow()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true)
+@Composable
+fun ChromaticPreview() {
+    TunerTheme(darkTheme = true) {
+        Scaffold { contentPadding ->
+            ChromaticMain(
+                paddingValues = contentPadding,
+                sharp = false,
+                pitch = "A",
+                octave = "4",
+                accuracy = "0",
+                tuned = 0.0
+            )
+        }
     }
 }
 
