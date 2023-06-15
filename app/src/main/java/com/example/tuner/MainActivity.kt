@@ -4,7 +4,6 @@ package com.example.tuner
  * Imports. Quite a lot of them
  */
 import android.Manifest
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -15,7 +14,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -126,19 +124,16 @@ class MainActivity : ComponentActivity() {
          * Values in fromDefaultMicrophone() are the sample rate, audio buffer size and buffer overlap
          */
         val dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(44100, 4096, 1024)
-        val pdh = PitchDetectionHandler { res, e ->
-            val pitchInHz = res.pitch
-            val probability = res.probability
-            val pitched = res.isPitched
+        val pdh = PitchDetectionHandler { res, e ->            //Res is the pitch detection result, e is the Audio Event (not used)
+            val pitchInHz = res.pitch                   //The calculated fundamental pitch
+            val probability = res.probability           //The probability that the calculated pitch is correct
+            val pitched = res.isPitched               //Whether or not the algorithm thinks the audio is 'pitched'. As in, a sound/note is being played
             runOnUiThread {
                 processPitch(pitchInHz, probability, pitched)
             }
         }
 
-        /**
-         * Adding filters to the AudioProcessor chain in order to increase accuracy
-         */
-
+        // Adding filters to the AudioProcessor chain in order to increase accuracy
         val lowPassFilter = LowPassFS(4000F, 44100F)
         dispatcher.addAudioProcessor(lowPassFilter)
 
@@ -172,12 +167,25 @@ class MainActivity : ComponentActivity() {
 
 /**
  * This is a phind creation. It is a filter used to reduce noise in the audio.
- * Added it to help with the inaccuracy problem. No idea if it has any impact, or actually works.
+ * Added it to help with the inaccuracy problem. Seems to have an impact.
  */
 class MovingAverageFilter(private val windowSize: Int) : AudioProcessor {
 
     /**
-     * ngl, can't explain how this is supposed to work, just that it supposedly uses some simple algorithm to reduce noise.
+     * ngl, can't explain how this is supposed to work.
+     * Phind describes it as so:
+     *
+     * The purpose of this code is to smooth out the audio signal by calculating the moving average of each element with its neighboring elements within a specified window size.
+     * The process:
+     * 1. The process function takes an AudioEvent as input, which contains an audio buffer.
+     * 2. The function retrieves the float buffer from the AudioEvent.
+     * 3. It creates a new float array called filteredBuffer with the same size as the input buffer.
+     * 4. It iterates over each element in the input buffer using a nested loop.
+     * 5. For each element, it calculates the sum of the previous windowSize elements (including the current element) in the input buffer.
+     * 6. It divides the sum by the windowSize to calculate the average.
+     * 7. It stores the average in the corresponding position of the filteredBuffer array
+     * 8. Finally, the filteredBuffer is copied back to the original buffer using System.arraycopy.
+
      */
     override fun process(audioEvent: be.tarsos.dsp.AudioEvent?): Boolean {
         audioEvent?.let {
@@ -200,8 +208,11 @@ class MovingAverageFilter(private val windowSize: Int) : AudioProcessor {
     }
 
     /**
-     * Don't understand why it must override this function, but do nothing.
-     * However, I am too afraid to mess with it. Need to look at the documentation and maybe ask phind.
+     * This function is called when the audio processing is finished.
+     * Here, you can define what should happen when the processing is complete.
+     * I don't have any use for it, however, Phind created it, and I'm too afraid of messing with it.
+     *
+     * So it shall stay here. Could be useful in the future. Maybe
      */
     override fun processingFinished() {}
 }
@@ -242,8 +253,6 @@ private fun processPitch(pitchInHz: Float, probability: Float, pitched: Boolean)
             TunerUIState.tuned = 0.0
         }
     }
-
-//    println("$pitchInHz $probability $pitched ${TunerUIState.tuned}")
 }
 
 /**
@@ -255,9 +264,12 @@ fun numSemitones(pitch: Double): Double {
     return 12 * log(pitch / (TunerUIState.refPitch), 2.0)
 
     //TODO
-    //Uhh so its kinda accurate now. No idea how it fixed itself. But, if it goes rogue again, must do the following:
+    //Uhh so its accurate now?? No idea how it fixed itself. The problem wasn't this function, but the pitch detection from Tarsos.
+    //But I was going to have to compensate for it here.
+    //
+    //If it goes rogue again, must do the following I guess:
     //Graph the inaccuracies and fix them.
-    //Or if not bothered, just subtract about 4 semitones from refPitch to 'fix' it for standard tuning
+    //Or if not bothered, just change the value of refPitch a bit to 'fix' it for standard tuning
 }
 
 /**
@@ -315,7 +327,7 @@ enum class TunerScreen {
 /**
  * The highest level composable function. It holds the ViewModel and the NavHost/NavController.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) //Since Material3 is 'experimental' I have to do this. Otherwise it yells at me.
 @Composable
 fun MainWindow(
     viewModel: MyViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
@@ -334,7 +346,7 @@ fun MainWindow(
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
             if (TunerUIState.page == "Chromatic") {
-                FloatingActionButton(onClick = { navController.navigate(TunerScreen.Refpitch.name) } /*TODO add the elevation*/,
+                FloatingActionButton(onClick = { navController.navigate(TunerScreen.Refpitch.name) },
                     containerColor = MaterialTheme.colorScheme.onSurface) {
                     Text(
                         text = "Hz",
@@ -353,7 +365,6 @@ fun MainWindow(
         ) {
             composable(route = TunerScreen.Chromatic.name) {
                 ChromaticMain(
-                    paddingValues = contentPadding,
                     sharp = UiState.sharp,
                     pitch = UiState.pitch,
                     octave = UiState.octave,
@@ -401,7 +412,10 @@ fun Title_bar(page: String, icon: ImageVector, navController: NavHostController)
 }
 
 /**
- * Composable function for the app's navigation bar (not currently in use)
+ * Composable function for the app's navigation bar
+ *
+ * (not currently in use and never actually developed.
+ * This code here is example code I was going to build from into what I wanted. Keeping it just in case)
  */
 @Composable
 fun Navbar() {
@@ -445,11 +459,10 @@ fun SettingsScreen() {
 
 
 /**
- * Composable function that contains all of the main body content of the chromatic page
+ * Composable function that contains all of the content of the chromatic page
  */
 @Composable
 fun ChromaticMain(
-    paddingValues: PaddingValues,
     sharp: Boolean,
     pitch: String,
     octave: String,
@@ -476,14 +489,14 @@ fun ChromaticMain(
                     fontFamily = IBMMedium,
                     fontSize = 40.sp,
                     color = if (!sharp) Color(0xFF343333) else {
-                        if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)
+                        if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)      //Kinda ugly, but it works and is readable (at least to me)
                     }
                 )
             }
             Text(
                 text = pitch,
                 style = MaterialTheme.typography.displayLarge,
-                color = if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC),
+                color = if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC),     //This one is nicer
                 modifier = Modifier.align(Alignment.Bottom)
             )
             Column(modifier = Modifier.align(Alignment.Bottom)) {
@@ -504,7 +517,7 @@ fun ChromaticMain(
                     .fillMaxWidth()
             )
             Text(
-                text = when (accuracy.toInt()) {in -100..0 -> accuracy else -> "+$accuracy"} ,
+                text = when (accuracy.toInt()) {in -100..0 -> accuracy else -> "+$accuracy"}, //Did this cause its shorter than the equivalent nested inline if statement. Ngl, kinda proud of this one.
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -528,7 +541,7 @@ fun ChromaticMain(
 }
 
 /**
- * A composable function that displays a graph that visually represents the accuracy
+ * A composable function that displays a 'graph' to visually represent the accuracy
  */
 @Composable
 fun BarGraph(accuracy: Int) {
@@ -555,11 +568,11 @@ fun BarGraph(accuracy: Int) {
 }
 
 /**
- * A composable function that shows the reference pitch and buttons and a slider to update it
+ * A composable function that shows the reference pitch, and buttons and a slider to update it
  */
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun RefPitch(refpitch: String) {
+    var sliderPosition by remember { mutableStateOf(440F) }
     Column(
         verticalArrangement = Arrangement.Center, modifier = Modifier
             .fillMaxWidth()
@@ -570,7 +583,7 @@ fun RefPitch(refpitch: String) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            IconButton(onClick = { TunerUIState.refPitch -= 1 }) {
+            IconButton(onClick = { TunerUIState.refPitch -= 1; sliderPosition -= 1 }) {
                 Icon(
                     Icons.Rounded.ArrowBack,
                     contentDescription = "Decrease"
@@ -586,21 +599,20 @@ fun RefPitch(refpitch: String) {
                 Text(text = "Hz", style = MaterialTheme.typography.titleSmall)
             }
             Spacer(modifier = Modifier.size(16.dp))
-            IconButton(onClick = { TunerUIState.refPitch += 1 }) {
+            IconButton(onClick = { TunerUIState.refPitch += 1; sliderPosition += 1 }) {
                 Icon(
                     Icons.Rounded.ArrowForward,
                     contentDescription = "Increase"
                 )
             }
         }
-        var sliderPosition by remember { mutableStateOf(440f) }
         Column {
             Slider(
                 modifier = Modifier
                     .semantics { contentDescription = "Reference Pitch Slider" }
                     .padding(16.dp),
                 value = sliderPosition,
-                onValueChange = { sliderPosition = it },
+                onValueChange = { sliderPosition = it; TunerUIState.refPitch = sliderPosition.roundToInt() },
                 valueRange = 400f..500f,
                 onValueChangeFinished = {
                     TunerUIState.refPitch = sliderPosition.roundToInt()
@@ -622,21 +634,17 @@ fun MainWindowPreview() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true)
 @Composable
 fun ChromaticPreview() {
     TunerTheme(darkTheme = true) {
-        Scaffold { contentPadding ->
-            ChromaticMain(
-                paddingValues = contentPadding,
-                sharp = false,
-                pitch = "A",
-                octave = "4",
-                accuracy = "0",
-                tuned = 0.0
-            )
-        }
+        ChromaticMain(
+            sharp = false,
+            pitch = "A",
+            octave = "4",
+            accuracy = "0",
+            tuned = 0.0
+        )
     }
 }
 
