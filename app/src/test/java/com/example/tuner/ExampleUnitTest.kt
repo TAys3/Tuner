@@ -12,8 +12,8 @@ import org.junit.Assert.*
 class ExampleUnitTest {
     @Test
     fun semitoneEstimations() {
-        assertEquals(0, (numSemitones(440.0, 440)).toInt())
-        assertEquals(-12, (numSemitones(220.0, 440)).toInt())
+        assertEquals(0, (numSemitones(440.0)).toInt())
+        assertEquals(-12, (numSemitones(220.0)).toInt())
     }
 
     @Test
