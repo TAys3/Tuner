@@ -34,5 +34,4 @@ fun SettingsScreen() {
         }
         Spacer(modifier = Modifier.size(48.dp))
     }
-
 }

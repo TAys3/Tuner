@@ -38,6 +38,7 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Grey600
 )
 
+//Didn't write this
 @Composable
 fun TunerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

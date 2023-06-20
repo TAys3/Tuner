@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * 
  * Using, this, I can have the ViewModel watch this object for any changes, enabling the UI to be
  * updated when I calculate the values.
+ *
+ * The 'on' value isn't used as it is for a planned feature. Too scared to remove it in fear of breaking something
  */
 object TunerUIState {
     var pitch: String by mutableStateOf("A")

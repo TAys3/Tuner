@@ -59,14 +59,14 @@ fun ChromaticMain(
                     fontFamily = IBMMedium,
                     fontSize = 40.sp,
                     color = if (!sharp) Color(0xFF343333) else {
-                        if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)      //Kinda ugly, but it works and is readable (at least to me)
+                        if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)       //Kinda ugly, but it works and is readable (at least to me)
                     }
                 )
             }
             Text(
                 text = pitch,
                 style = MaterialTheme.typography.displayLarge,
-                color = if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC),     //This one is nicer
+                color = if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC),      //This one is nicer
                 modifier = Modifier.align(Alignment.Bottom)
             )
             Column(modifier = Modifier.align(Alignment.Bottom)) {
@@ -115,6 +115,7 @@ fun ChromaticMain(
  */
 @Composable
 fun BarGraph(accuracy: Int) {
+    //Calculating the offset of the little bar, which is how far from the center it is
     val offset: Int = if (abs(accuracy) > 45) {
         if (accuracy > 0) 45 else -45
     } else {

@@ -57,7 +57,7 @@ fun RefPitch(refpitch: String) {
                     text = refpitch,
                     style = MaterialTheme.typography.titleSmall,
                     fontSize = 50.sp
-                ) /*TODO change to a text field (maybe)*/
+                )
                 Text(text = "Hz", style = MaterialTheme.typography.titleSmall)
             }
             Spacer(modifier = Modifier.size(16.dp))

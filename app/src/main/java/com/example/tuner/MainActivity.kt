@@ -70,7 +70,6 @@ class MainActivity : ComponentActivity() {
         requestMicrophonePermission()
         setContent {
             TunerTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
@@ -89,7 +88,7 @@ class MainActivity : ComponentActivity() {
          * Values in fromDefaultMicrophone() are the sample rate, audio buffer size and buffer overlap
          */
         val dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(44100, 4096, 1024)
-        val pdh = PitchDetectionHandler { res, e ->            //Res is the pitch detection result, e is the Audio Event (not used)
+        val pdh = PitchDetectionHandler { res, e ->           //Res is the pitch detection result, e is the Audio Event (not used)
             val pitchInHz = res.pitch                   //The calculated fundamental pitch
             val probability = res.probability           //The probability that the calculated pitch is correct
             val pitched = res.isPitched               //Whether or not the algorithm thinks the audio is 'pitched'. As in, a sound/note is being played
@@ -227,14 +226,6 @@ private fun processPitch(pitchInHz: Float, probability: Float, pitched: Boolean)
  */
 fun numSemitones(pitch: Double): Double {
     return 12 * log(pitch / (TunerUIState.refPitch), 2.0)
-
-    //TODO
-    //Uhh so its accurate now?? No idea how it fixed itself. The problem wasn't this function, but the pitch detection from Tarsos.
-    //But I was going to have to compensate for it here.
-    //
-    //If it goes rogue again, must do the following I guess:
-    //Graph the inaccuracies and fix them.
-    //Or if not bothered, just change the value of refPitch a bit to 'fix' it for standard tuning
 }
 
 /**
@@ -307,7 +298,6 @@ fun MainWindow(
                 navController = navController
             )
         },
-//        bottomBar = { Navbar() },
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
             if (TunerUIState.page == "Chromatic") {

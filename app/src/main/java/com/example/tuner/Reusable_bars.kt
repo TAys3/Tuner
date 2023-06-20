@@ -58,8 +58,6 @@ fun Navbar() {
     var selectedItem by remember { mutableStateOf(0) }
     val items = listOf("Tunings", "Chromatic", "Metronome")
 
-    //TODO
-    //Fix up icons and text. Maybe remove text
     NavigationBar(containerColor = Grey900) {
         items.forEachIndexed { index, item ->
             NavigationBarItem(icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
