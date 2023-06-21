@@ -38,12 +38,10 @@ object TunerUIState {
  * this as its ViewModel.
  *
  * Usually, all the data is stored in something called a data class, which is initialised within
- * the ViewModel. However, this approach does not allow me to update the UI with any values that I calculate,
- * as the calculation functions are not composable, so are not able to interact with a ViewModel. The way I have designed
- * the app also does not allow this to happen as the calculations are happening concurrently, and are not
+ * the ViewModel. However, this approach does not allow me to update the UI. The way I have designed
+ * the app does not allow this to happen as the calculations are happening concurrently, and are not
  * triggered by the UI. If they were, I would be able to update the values in the ViewModel, which would
- * update the UI. This is the reason for the use of the object, as it allows me to update the values, and
- * trigger a change in the UI.
+ * update the UI. This is the reason for the use of the object.
  *
  * The reason why ViewModel updates are pretty much locked to being UI triggered (thru buttons and such)
  * is that the ViewModel is a class, that is initialised within the highest level composable function.

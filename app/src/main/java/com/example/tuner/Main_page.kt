@@ -59,7 +59,7 @@ fun ChromaticMain(
                     fontFamily = IBMMedium,
                     fontSize = 40.sp,
                     color = if (!sharp) Color(0xFF343333) else {
-                        if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)       //Kinda ugly, but it works and is readable (at least to me)
+                        if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)       //Decides the colour of the text. Kinda ugly, but it works and is readable (at least to me)
                     }
                 )
             }
@@ -74,7 +74,7 @@ fun ChromaticMain(
                     text = octave,
                     fontFamily = IBMLight,
                     fontSize = 40.sp,
-                    color = if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)
+                    color = if (tuned >= 1.0) Color(0xFF95EE9E) else Color(0xFFC0BCBC)   //Same thing
                 )
                 Spacer(modifier = Modifier.height(50.dp))
             }
@@ -87,7 +87,7 @@ fun ChromaticMain(
                     .fillMaxWidth()
             )
             Text(
-                text = when (accuracy.toInt()) {in -100..0 -> accuracy else -> "+$accuracy"}, //Did this cause its shorter than the equivalent nested inline if statement. Ngl, kinda proud of this one.
+                text = when (accuracy.toInt()) {in -100..0 -> accuracy else -> "+$accuracy"}, //Same purpose. Did this cause its shorter than the equivalent nested inline if statement. Ngl, kinda proud of this one.
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.bodySmall
             )
